@@ -47,53 +47,64 @@
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="dflip/js/dflip.min.js"></script>
+<script>
+    const shelf = document.getElementById('myShelf');
+    let allBooks = [];
 
-    <script>
-        const shelf = document.getElementById('myShelf');
-        let allBooks = []; // We store the full list here
-
-        async function loadBooks() {
+    async function loadBooks() {
+        try {
             const response = await fetch('/api/books');
-            allBooks = await response.json();
+            const data = await response.json();
+
+            if (!Array.isArray(data) || data.length === 0) {
+                shelf.innerHTML = "<p>No books found</p>";
+                return;
+            }
+
+            allBooks = data;
             renderBooks(allBooks);
+        } catch (e) {
+            console.error('Failed to load books', e);
+            shelf.innerHTML = "<p>Failed to load books</p>";
         }
+    }
 
-        function renderBooks(booksToDisplay) {
-            shelf.innerHTML = ''; 
-            booksToDisplay.forEach(fileName => {
-                const bookDiv = document.createElement('div');
-                bookDiv.className = "_df_button book-btn";
-                
-                const encodedName = encodeURIComponent(fileName);
-                bookDiv.setAttribute('source', 'books/' + encodedName);
-                
-                const displayName = fileName.replace('.pdf', '');
-                bookDiv.innerHTML = "📖<br><br>" + displayName;
-                
-                shelf.appendChild(bookDiv);
-            });
-            
-            // Refresh DearFlip buttons so they work after searching
-            if(window.DFLIP && window.DFLIP.parseButtons) window.DFLIP.parseButtons();
+    function renderBooks(booksToDisplay) {
+        shelf.innerHTML = '';
+        booksToDisplay.forEach(fileName => {
+            const bookDiv = document.createElement('div');
+            bookDiv.className = "_df_button book-btn";
+
+            const encodedName = encodeURIComponent(fileName);
+            bookDiv.setAttribute('source', '/books/' + encodedName);
+
+            bookDiv.innerHTML = "📖<br><br>" + fileName.replace('.pdf', '');
+            shelf.appendChild(bookDiv);
+        });
+
+        if (window.DFLIP?.parseButtons) {
+            window.DFLIP.parseButtons();
         }
+    }
 
-        // The Search Logic
-        function filterBooks() {
-            const searchTerm = document.getElementById('bookSearch').value.toLowerCase();
-            const filtered = allBooks.filter(name => 
+    function filterBooks() {
+        const searchTerm = document
+            .getElementById('bookSearch')
+            .value
+            .toLowerCase();
+
+        renderBooks(
+            allBooks.filter(name =>
                 name.toLowerCase().includes(searchTerm)
-            );
-            renderBooks(filtered);
-        }
+            )
+        );
+    }
 
-        loadBooks();
-    </script>
+    loadBooks();
+</script>
+
     <script>
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("/sw.js")
-    .then(() => console.log("SW registered"))
-    .catch(err => console.error("SW failed", err));
-}
+
 </script>
 
 </body>
