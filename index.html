@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>My Auto-Updating Library</title>
+    <link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#1a1a1a">
+
+    <link href="dflip/css/dflip.min.css" rel="stylesheet" type="text/css">
+    <link href="dflip/css/themify-icons.min.css" rel="stylesheet" type="text/css">
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #1a1a1a; color: white; text-align: center; margin: 0; padding-top: 120px; }
+        
+        /* Search Bar Container */
+        .header-section { 
+            position: fixed; top: 0; width: 100%; background: #1a1a1a; 
+            padding: 20px 0; z-index: 1000; box-shadow: 0 5px 15px rgba(0,0,0,0.5); 
+        }
+
+        #bookSearch { 
+            padding: 12px 20px; width: 60%; max-width: 500px; border-radius: 25px; 
+            border: none; font-size: 16px; outline: none; 
+        }
+
+        .shelf { 
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); 
+            gap: 20px; padding: 20px; 
+        }
+
+        .book-btn { 
+            background: #fdfdfd; color: #333; padding: 30px 15px; border-radius: 5px; 
+            cursor: pointer; font-weight: 600; box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+            border-left: 10px solid #2980b9; transition: 0.3s;
+        }
+
+        .book-btn:hover { transform: translateY(-10px); background: #3498db; color: white; }
+    </style>
+</head>
+<body>
+
+    <div class="header-section">
+        <h1>📚 My Story Collection</h1>
+        <input type="text" id="bookSearch" placeholder="Search for a book title..." onkeyup="filterBooks()">
+    </div>
+
+    <div id="myShelf" class="shelf"></div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="dflip/js/dflip.min.js"></script>
+
+    <script>
+        const shelf = document.getElementById('myShelf');
+        let allBooks = []; // We store the full list here
+
+        async function loadBooks() {
+            const response = await fetch('/api/books');
+            allBooks = await response.json();
+            renderBooks(allBooks);
+        }
+
+        function renderBooks(booksToDisplay) {
+            shelf.innerHTML = ''; 
+            booksToDisplay.forEach(fileName => {
+                const bookDiv = document.createElement('div');
+                bookDiv.className = "_df_button book-btn";
+                
+                const encodedName = encodeURIComponent(fileName);
+                bookDiv.setAttribute('source', 'books/' + encodedName);
+                
+                const displayName = fileName.replace('.pdf', '');
+                bookDiv.innerHTML = "📖<br><br>" + displayName;
+                
+                shelf.appendChild(bookDiv);
+            });
+            
+            // Refresh DearFlip buttons so they work after searching
+            if(window.DFLIP && window.DFLIP.parseButtons) window.DFLIP.parseButtons();
+        }
+
+        // The Search Logic
+        function filterBooks() {
+            const searchTerm = document.getElementById('bookSearch').value.toLowerCase();
+            const filtered = allBooks.filter(name => 
+                name.toLowerCase().includes(searchTerm)
+            );
+            renderBooks(filtered);
+        }
+
+        loadBooks();
+    </script>
+    <script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/sw.js")
+    .then(() => console.log("SW registered"))
+    .catch(err => console.error("SW failed", err));
+}
+</script>
+
+</body>
+</html>
+
