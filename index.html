@@ -679,13 +679,14 @@ function getLastReadBook() {
     }
 }
 
-        if (window.DFLIP) {
-    DFLIP.defaults.onPageChange = function (page, book) {
-        if (book?.source) {
+      if (window.DFLIP) {
+    DFLIP.defaults.onPageChange = function(page, book) {
+        if (book && book.source) {
             const file = book.source.split("/").pop();
-            saveReadingState(file, page);
+            Android.savePage(file, page);
         }
     };
+}
 }
 
 document.addEventListener("df-page-changed", function (e) {
