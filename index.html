@@ -1,112 +1,754 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+
 <head>
+    <link href="/dflip/css/dflip.min.css" rel="stylesheet">
+    <link href="/dflip/css/themify-icons.min.css" rel="stylesheet">
+
     <meta charset="UTF-8">
-    <title>My Auto-Updating Library</title>
-    <link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#1a1a1a">
-
-    <link href="dflip/css/dflip.min.css" rel="stylesheet" type="text/css">
-    <link href="dflip/css/themify-icons.min.css" rel="stylesheet" type="text/css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library - Digital Reading</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #1a1a1a; color: white; text-align: center; margin: 0; padding-top: 120px; }
-        
-        /* Search Bar Container */
-        .header-section { 
-            position: fixed; top: 0; width: 100%; background: #1a1a1a; 
-            padding: 20px 0; z-index: 1000; box-shadow: 0 5px 15px rgba(0,0,0,0.5); 
+        /* CSS Variables for theming */
+        :root {
+            /* Light mode (default) */
+            --bg-primary: #fafaf8;
+            --bg-secondary: #ffffff;
+            --text-primary: #1a1a1a;
+            --text-secondary: #666666;
+            --text-tertiary: #999999;
+            --border-color: #e5e5e3;
+            --shadow-color: rgba(0, 0, 0, 0.08);
+            --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            --progress-bg: #f0f0f0;
         }
 
-        #bookSearch { 
-            padding: 12px 20px; width: 60%; max-width: 500px; border-radius: 25px; 
-            border: none; font-size: 16px; outline: none; 
+        /* Dark mode class-based */
+        html.dark {
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #242424;
+            --text-primary: #e8e8e8;
+            --text-secondary: #b0b0b0;
+            --text-tertiary: #808080;
+            --border-color: #333333;
+            --shadow-color: rgba(0, 0, 0, 0.3);
+            --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            --progress-bg: #333333;
         }
 
-        .shelf { 
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); 
-            gap: 20px; padding: 20px; 
+        /* Respect system preference if no class is set */
+        @media (prefers-color-scheme: dark) {
+            html:not(.light) {
+                --bg-primary: #1a1a1a;
+                --bg-secondary: #242424;
+                --text-primary: #e8e8e8;
+                --text-secondary: #b0b0b0;
+                --text-tertiary: #808080;
+                --border-color: #333333;
+                --shadow-color: rgba(0, 0, 0, 0.3);
+                --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+                --progress-bg: #333333;
+            }
         }
 
-        .book-btn { 
-            background: #fdfdfd; color: #333; padding: 30px 15px; border-radius: 5px; 
-            cursor: pointer; font-weight: 600; box-shadow: 0 10px 20px rgba(0,0,0,0.5);
-            border-left: 10px solid #2980b9; transition: 0.3s;
+        /* Reset and base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
-        .book-btn:hover { transform: translateY(-10px); background: #3498db; color: white; }
-    </style>
-</head>
-<body>
+        html {
+            scroll-behavior: smooth;
+        }
 
-    <div class="header-section">
-        <h1>📚 My Story Collection</h1>
-        <input type="text" id="bookSearch" placeholder="Search for a book title..." onkeyup="filterBooks()">
-    </div>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
 
-    <div id="myShelf" class="shelf"></div>
+        /* Header - sticky */
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background-color: var(--bg-primary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1.5rem 2rem;
+            backdrop-filter: blur(10px);
+        }
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="dflip/js/dflip.min.js"></script>
-<script>
-    const shelf = document.getElementById('myShelf');
-    let allBooks = [];
+        .header-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
 
-    async function loadBooks() {
-        try {
-            const response = await fetch('/api/books');
-            const data = await response.json();
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 2rem;
+            margin-bottom: 1rem;
+        }
 
-            if (!Array.isArray(data) || data.length === 0) {
-                shelf.innerHTML = "<p>No books found</p>";
-                return;
+        h1 {
+            font-size: 1.75rem;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+            flex-shrink: 0;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .theme-toggle {
+            background: none;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            width: 40px;
+            height: 40px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+        }
+
+        .theme-toggle:hover {
+            background-color: var(--bg-secondary);
+        }
+
+        .theme-toggle:active {
+            transform: scale(0.95);
+        }
+
+        /* Search input */
+        .search-wrapper {
+            display: flex;
+            flex: 1;
+            max-width: 400px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+        }
+
+        .search-input::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--text-secondary);
+            box-shadow: 0 0 0 2px var(--shadow-color);
+        }
+
+        /* Main content */
+        main {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem 1.25rem;
+        }
+
+        /* Grid layout */
+        .books-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 2.5rem 1.5rem;
+            align-items: start;
+        }
+
+        @media (max-width: 768px) {
+            .books-grid {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+                gap: 2rem 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .books-grid {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+                gap: 1.5rem 0.75rem;
+            }
+        }
+
+        /* Book card */
+        .book-card {
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .book-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .book-cover {
+            
+            position: relative;
+            aspect-ratio: 3/4;
+            border-radius: 4px;
+            overflow: hidden;
+            background: linear-gradient(135deg, #8b9dc3 0%, #6b7aa1 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 0.75rem;
+            box-shadow: var(--card-shadow);
+            transition: box-shadow 0.3s ease;
+            
+        }
+
+        .book-card:hover .book-cover {
+            box-shadow: 0 4px 12px var(--shadow-color);
+        }
+
+        /* Cover colors - varied palette */
+        .book-cover.cover-1 {
+            background: linear-gradient(135deg, #7c8fa3 0%, #5a6d85 100%);
+        }
+
+        .book-cover.cover-2 {
+            background: linear-gradient(135deg, #9da899 0%, #7d8679 100%);
+        }
+
+        .book-cover.cover-3 {
+            background: linear-gradient(135deg, #8fa5a9 0%, #6f8588 100%);
+        }
+
+        .book-cover.cover-4 {
+            background: linear-gradient(135deg, #a39880 0%, #826e5a 100%);
+        }
+
+        .book-cover.cover-5 {
+            background: linear-gradient(135deg, #9db3a1 0%, #7d9381 100%);
+        }
+
+        .book-cover.cover-6 {
+            background: linear-gradient(135deg, #8fa8b5 0%, #6f8895 100%);
+        }
+
+        .book-cover.cover-7 {
+            background: linear-gradient(135deg, #a39a8f 0%, #837569 100%);
+        }
+
+        .book-cover.cover-8 {
+            background: linear-gradient(135deg, #94a2ac 0%, #748291 100%);
+        }
+
+        .cover-initial {
+            font-size: 3rem;
+            font-weight: 700;
+            color: rgba(255, 255, 255, 0.25);
+            letter-spacing: -2px;
+        }
+
+        /* Bookmark/star icon */
+        .bookmark-icon {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 24px;
+            height: 24px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            color: #8b9dc3;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .book-card:hover .bookmark-icon {
+            opacity: 1;
+        }
+
+        .book-card.bookmarked .bookmark-icon {
+    opacity: 1;
+    background: #ffcc00;
+    color: #000;
+}
+
+/* ▶ continue reading bar */
+.continue-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    background: #00e676;
+    width: 100%;
+}
+
+/* remove all focus borders */
+.book-card,
+.book-card:focus,
+.book-card:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+        /* Progress bar */
+        .progress-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background-color: rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.5);
+            width: var(--progress, 35%);
+            transition: width 0.3s ease;
+        }
+
+        /* Book title */
+        .book-title {
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--text-primary);
+
+    white-space: normal;     /* ✅ wrap allowed */
+    overflow: visible;       /* ✅ no cutting */
+    text-overflow: unset;    /* ✅ remove ... */
+                -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+       
+
+        .book-author {
+            font-size: 0.75rem;
+            color: var(--text-tertiary);
+            margin-top: 0.25rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .empty-state h2 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        /* Responsive header */
+        @media (max-width: 768px) {
+            header {
+                padding: 1.25rem 1.5rem;
             }
 
-            allBooks = data;
-            renderBooks(allBooks);
-        } catch (e) {
-            console.error('Failed to load books', e);
-            shelf.innerHTML = "<p>Failed to load books</p>";
+            .header-top {
+                flex-direction: column;
+                gap: 1rem;
+                margin-bottom: 0;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+                width: 100%;
+            }
+
+            .header-controls {
+                width: 100%;
+                gap: 0.75rem;
+            }
+
+            .search-wrapper {
+                max-width: none;
+            }
+
+            main {
+                padding: 2rem 1.5rem;
+            }
         }
-    }
 
-    function renderBooks(booksToDisplay) {
-        shelf.innerHTML = '';
-        booksToDisplay.forEach(fileName => {
-            const bookDiv = document.createElement('div');
-            bookDiv.className = "_df_button book-btn";
+        @media (max-width: 480px) {
+            header {
+                padding: 1rem;
+            }
 
-            const encodedName = encodeURIComponent(fileName);
-            bookDiv.setAttribute('source', '/books/' + encodedName);
+            h1 {
+                font-size: 1.25rem;
+            }
 
-            bookDiv.innerHTML = "📖<br><br>" + fileName.replace('.pdf', '');
-            shelf.appendChild(bookDiv);
-        });
+            main {
+                padding: 1.5rem 1rem;
+            }
 
-        if (window.DFLIP?.parseButtons) {
-            window.DFLIP.parseButtons();
+            .search-input {
+                font-size: 0.9rem;
+                padding: 0.65rem 0.85rem;
+            }
+
+            .theme-toggle {
+                width: 36px;
+                height: 36px;
+            }
         }
-    }
 
-    function filterBooks() {
-        const searchTerm = document
-            .getElementById('bookSearch')
-            .value
-            .toLowerCase();
+        /* Focus styles for accessibility */
+        button:focus,
+        input:focus {
+            outline: 2px solid var(--text-secondary);
+            outline-offset: 2px;
+        }
 
-        renderBooks(
-            allBooks.filter(name =>
-                name.toLowerCase().includes(searchTerm)
-            )
-        );
-    }
+        /* 🔥 Remove DearFlip focus outline (blue border) */
+        /* 🔥 Remove DearFlip focus outline (blue border) */
+        /* ===============================
+   FORCE REMOVE ALL FOCUS RINGS
+   (DearFlip + Browser + WebKit)
+   =============================== */
 
-    loadBooks();
-</script>
+        ._df_button,
+        ._df_button:focus,
+        ._df_button:focus-visible,
+        ._df_button:active,
+        ._df_button:focus-within,
+        .book-card,
+        .book-card:focus,
+        .book-card:focus-visible,
+        .book-card:active,
+        .book-card:focus-within {
+            outline: none !important;
+            box-shadow: none !important;
+            border: none !important;
+        }
+
+        /* Chrome / Edge / Android WebView */
+        ._df_button::-moz-focus-inner {
+            border: 0 !important;
+        }
+
+        /* WebKit (Android WebView) */
+        ._df_button {
+            -webkit-tap-highlight-color: transparent;
+        }
+
+
+
+        /* ===== AUTO GENERATED BOOK COVERS ===== */
+
+        .auto-cover {
+            position: absolute;
+            inset: 0;
+            padding: 14px;
+            display: flex;
+            align-items: flex-end;
+            background: linear-gradient(to bottom,
+                    rgba(0, 0, 0, 0.15),
+                    rgba(0, 0, 0, 0.55));
+        }
+
+        .auto-cover-title {
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1.3;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        /* Remove blue focus ring ONLY */
+._df_button:focus,
+._df_button:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+
+    </style>
+</head>
+
+<body>
+
+    <!-- Header -->
+    <header>
+        <div class="header-container">
+            <div class="header-top">
+                <h1>Library</h1>
+                <div class="search-wrapper">
+                    <input type="text" class="search-input" placeholder="Search your library" id="searchInput"
+                        aria-label="Search books">
+                </div>
+                <div class="header-controls">
+                    <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode"
+                        title="Toggle dark mode">
+                        <span id="themeIcon">🌙</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main content -->
+    <main>
+        <div class="books-grid" id="booksGrid">
+            <!-- Book cards will be generated here -->
+        </div>
+    </main>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="/dflip/js/dflip.min.js"></script>
+
+
 
     <script>
 
-</script>
+        const books = [];
+        const coverClasses = [
+            "cover-1", "cover-2", "cover-3", "cover-4",
+            "cover-5", "cover-6", "cover-7", "cover-8"
+        ];
 
+        async function loadBooksFromBackend() {
+            try {
+                const res = await fetch("/api/books");
+                const files = await res.json();
+
+                books.length = 0; // keep same reference
+
+                files.forEach((file, index) => {
+                    books.push({
+                        title: file.replace(".pdf", ""),
+                        author: "",
+                        coverClass: coverClasses[index % coverClasses.length],
+                        progress: 0,
+                        fileName: file
+                    });
+                });
+
+                renderBooks(books);
+            } catch (e) {
+                console.error("Failed to load books", e);
+                renderBooks([]);
+            }
+        }
+function getLastReadBook() {
+    const state = getReadingState();
+    let lastBook = null;
+    let lastTime = 0;
+
+    for (const file in state) {
+        if (state[file].lastRead && state[file].lastRead > lastTime) {
+            lastTime = state[file].lastRead;
+            lastBook = { file, page: state[file].page };
+        }
+    }
+    return lastBook;
+}
+
+
+        // Theme toggle functionality
+        const themeToggle = document.getElementById("themeToggle");
+        const themeIcon = document.getElementById("themeIcon");
+        const htmlElement = document.documentElement;
+
+        // Check for saved theme preference or default to system preference
+        function initTheme() {
+            const saved = localStorage.getItem("theme");
+            if (saved) {
+                if (saved === "dark") {
+                    htmlElement.classList.remove("light");
+                    htmlElement.classList.add("dark");
+                    themeIcon.textContent = "☀️";
+                } else {
+                    htmlElement.classList.remove("dark");
+                    htmlElement.classList.add("light");
+                    themeIcon.textContent = "🌙";
+                }
+            } else {
+                // Detect system preference
+                const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+                if (prefersDark) {
+                    htmlElement.classList.add("dark");
+                    themeIcon.textContent = "☀️";
+                } else {
+                    htmlElement.classList.add("light");
+                    themeIcon.textContent = "🌙";
+                }
+            }
+        }
+
+        themeToggle.addEventListener("click", () => {
+            const isCurrDark = htmlElement.classList.contains("dark");
+            const newTheme = isCurrDark ? "light" : "dark";
+
+            localStorage.setItem("theme", newTheme);
+            if (newTheme === "dark") {
+                htmlElement.classList.remove("light");
+                htmlElement.classList.add("dark");
+                themeIcon.textContent = "☀️";
+            } else {
+                htmlElement.classList.remove("dark");
+                htmlElement.classList.add("light");
+                themeIcon.textContent = "🌙";
+            }
+        });
+// function getReadingState() {
+//     return JSON.parse(localStorage.getItem("readingState") || "{}");
+// }
+
+        // Render books
+      function renderBooks(filteredBooks = books) {
+    const grid = document.getElementById("booksGrid");
+    const readingState = getReadingState();
+
+    if (filteredBooks.length === 0) {
+        grid.innerHTML = `
+            <div style="grid-column: 1 / -1;">
+                <div class="empty-state">
+                    <div class="empty-state-icon">📚</div>
+                    <h2>No books found</h2>
+                    <p>Try adjusting your search</p>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    grid.innerHTML = filteredBooks.map(book => {
+        const state = readingState[book.fileName] || {};
+        const isBookmarked = state.bookmarked;
+        const hasProgress = state.page > 1;
+        const initial = book.title.charAt(0).toUpperCase();
+
+        return `
+        <div 
+            class="_df_button book-card ${isBookmarked ? "bookmarked" : ""}"
+            source="/books/${encodeURIComponent(book.fileName)}"
+            data-dflip-type="flipbook"
+        >
+            <div class="book-cover ${book.coverClass}">
+                ${hasProgress ? `<div class="continue-bar"></div>` : ""}
+                <div class="cover-initial">${initial}</div>
+
+                <div 
+                    class="bookmark-icon"
+                    onclick="toggleBookmark('${book.fileName}', event)"
+                >★</div>
+            </div>
+
+            <div class="book-title">${book.title}</div>
+        </div>
+        `;
+    }).join("");
+
+    if (window.DFLIP && window.DFLIP.parseButtons) {
+        window.DFLIP.parseButtons();
+    }
+}
+
+        if (window.DFLIP) {
+    DFLIP.defaults.onPageChange = function (page, book) {
+        if (book?.source) {
+            const file = book.source.split("/").pop();
+            saveReadingState(file, page);
+        }
+    };
+}
+
+document.addEventListener("df-page-changed", function (e) {
+    const file = e.detail?.source;
+    const page = e.detail?.pageNumber;
+
+    if (!file || !page) return;
+
+    const state = getReadingState();
+    if (!state[file]) state[file] = {};
+
+    state[file].page = page;
+    state[file].lastRead = Date.now();
+
+    saveReadingState(state);
+});
+
+
+        // Search functionality
+        const searchInput = document.getElementById("searchInput");
+        searchInput.addEventListener("input", (e) => {
+            const query = e.target.value.toLowerCase();
+            const filtered = books.filter(book =>
+                book.title.toLowerCase().includes(query) ||
+                book.author.toLowerCase().includes(query)
+            );
+            renderBooks(filtered);
+        });
+
+        // Initialize on page load
+        initTheme();
+        loadBooksFromBackend();
+
+
+
+      function getReadingState() {
+    return JSON.parse(localStorage.getItem("readingState") || "{}");
+}
+
+function saveReadingState(state) {
+    localStorage.setItem("readingState", JSON.stringify(state));
+}
+
+
+        function toggleBookmark(fileName, e) {
+    e.stopPropagation();
+
+    const state = getReadingState();
+
+    if (!state[fileName]) {
+        state[fileName] = { page: 1, bookmarked: true, lastRead: Date.now() };
+    } else {
+        state[fileName].bookmarked = !state[fileName].bookmarked;
+    }
+
+    saveReadingState(state);
+    renderBooks(books);
+}
+
+
+
+
+    </script>
 </body>
-</html>
 
+</html>

@@ -8,12 +8,12 @@ const PORT = process.env.PORT || 3000;
 // ===== STATIC FILES =====
 // public → html, js, css
 // books  → pdf files
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(__dirname));
 app.use('/books', express.static(path.join(__dirname, 'books')));
 
 // ===== HOME ROUTE (IMPORTANT FOR WEBVIEW) =====
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.sendFile(path.join(__dirname,'index.html'));
 });
 
 // ===== BOOK SCANNER API =====
