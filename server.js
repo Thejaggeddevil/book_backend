@@ -1,45 +1,53 @@
-const express = require('express');
-const fs = require('fs');
-const path = require('path');
+const express = require("express");
+const fs = require("fs");
+const path = require("path");
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT;
 
-// ===== STATIC FILES =====
-// public → html, js, css
-// books  → pdf files
-app.use(express.static(__dirname));
-app.use('/books', express.static(path.join(__dirname, 'books')));
+/* =========================
+   STATIC ASSETS
+   ========================= */
+// dflip, css, js, etc.
+app.use("/dflip", express.static(path.join(__dirname, "dflip")));
+app.use("/books", express.static(path.join(__dirname, "books")));
 
-// ===== HOME ROUTE (IMPORTANT FOR WEBVIEW) =====
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname,'index.html'));
+/* =========================
+   HEALTH CHECK (Railway)
+   ========================= */
+app.get("/health", (_, res) => {
+  res.status(200).send("OK");
 });
 
-// ===== BOOK SCANNER API =====
-app.get('/api/books', (req, res) => {
-    const directoryPath = path.join(__dirname, 'books');
-
-    // 🔥 DO NOT CRASH IF FOLDER IS MISSING
-    if (!fs.existsSync(directoryPath)) {
-        console.warn('⚠️ books folder not found');
-        return res.json([]);
-    }
-
-    fs.readdir(directoryPath, (err, files) => {
-        if (err) {
-            console.error('❌ Error reading books folder', err);
-            return res.json([]); // never break UI
-        }
-
-        const pdfFiles = files.filter(file =>
-            file.toLowerCase().endsWith('.pdf')
-        );
-
-        res.json(pdfFiles);
-    });
+/* =========================
+   HOME PAGE
+   ========================= */
+app.get("/", (_, res) => {
+  res.sendFile(path.join(__dirname, "index.html"));
 });
 
-app.listen(PORT, () => {
-    console.log(`✅ Server running on port ${PORT}`);
+/* =========================
+   BOOK API
+   ========================= */
+app.get("/api/books", (_, res) => {
+  const dir = path.join(__dirname, "books");
+
+  if (!fs.existsSync(dir)) {
+    return res.json([]);
+  }
+
+  fs.readdir(dir, (err, files) => {
+    if (err) return res.json([]);
+
+    res.json(
+      files.filter(f => f.toLowerCase().endsWith(".pdf"))
+    );
+  });
+});
+
+/* =========================
+   START SERVER
+   ========================= */
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`✅ Server listening on ${PORT}`);
 });
